@@ -20,6 +20,12 @@ async function* realtimeOrders() {
   }
 }
 
+function subscribeOrders (listener) {
+  const handler = ({ id, total }) => listener(JSON.stringify({ id, total }))
+  orderStream.on('data', handler)
+  return () => orderStream.off('data', handler)
+}
+
 function* currentOrders(category) {
   const idPrefix = catToPrefix[category];
   if (!idPrefix) return;
@@ -54,6 +60,7 @@ const calculateID = (idPrefix, data) => {
 module.exports = fp(async function (fastify, opts) {
   fastify.decorate("currentOrders", currentOrders);
   fastify.decorate("realtimeOrders", realtimeOrders);
+  fastify.decorate("subscribeOrders", subscribeOrders);
   fastify.decorate("addOrder", addOrder);
   fastify.decorateRequest("mockDataInsert", function (category, data) {
     const request = this;

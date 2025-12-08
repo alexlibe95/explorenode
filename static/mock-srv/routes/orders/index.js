@@ -27,10 +27,12 @@ module.exports = async function (fastify, opts) {
     async (socket , request) => {
       monitorMessages(socket)
       sendCurrentOrders(request.params.category, socket)
-      for await (const order of fastify.realtimeOrders()) {
-        if (socket.readyState >= socket.CLOSING) break
+      const unsubscribe = fastify.subscribeOrders((order) => {
+        if (socket.readyState >= socket.CLOSING) return
         socket.send(order)
-      }
+      })
+      socket.on('close', unsubscribe)
+      socket.on('error', unsubscribe)
     }
   )
 
